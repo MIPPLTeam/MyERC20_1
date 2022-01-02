@@ -7,12 +7,22 @@ const useLocalWeb3Provider = () => {
 }
 
 const resolveWeb3 = (resolve) => {
-  let { web3 } = window
-  const alreadyInjected = typeof web3 !== 'undefined' // i.e. Mist/Metamask
+  let web3Provider = window.ethereum
+  var web3;
+  const alreadyInjected = typeof web3Provider !== 'undefined' // i.e. Mist/Metamask
 
   if (alreadyInjected) {
     console.log('Injected web3 detected.')
-    web3 = new Web3(web3.currentProvider)
+    try {
+      console.log('Request account access.')
+      // Request account access
+      web3Provider.request({ method: "eth_requestAccounts" });;
+      console.log('After request account access.')
+      web3 = new Web3(web3Provider);
+    } catch (error) {
+      // User denied account access...
+      console.error("User denied account access")
+    }
   } else {
     console.log('No web3 instance injected, using Local web3.')
     web3 = useLocalWeb3Provider()
