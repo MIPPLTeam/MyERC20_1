@@ -16,6 +16,7 @@ const resolveWeb3 = (resolve) => {
     try {
       console.log('Request account access.')
       // Request account access
+      web3Provider.enable()
       web3Provider.request({ method: "eth_requestAccounts" });;
       console.log('After request account access.')
       web3 = new Web3(web3Provider);
