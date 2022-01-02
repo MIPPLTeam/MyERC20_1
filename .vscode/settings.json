@@ -10,5 +10,7 @@
     "markdown",
     "latex",
     "plaintext"
-  ]
+  ],
+  "solidity.compileUsingRemoteVersion": "v0.8.2+commit.661d1103",
+  "solidity.defaultCompiler": "remote"
 }
