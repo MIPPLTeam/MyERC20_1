@@ -7,18 +7,19 @@ class DApp extends React.Component {
   state = { 
     totalSupply: null,
     currentBalance: null,
+    minterRole: null,
     message: ''
   }
 
   async componentDidMount () {
     await this.refreshContractData()
-
   }
 
   async refreshContractData () {
     console.log('Refresh account data')
     this.getTotalSupply()
     this.getCurrentBalance()
+    this.hasMinterRole()
   }
 
   mintTokens = async () => {
@@ -49,10 +50,17 @@ class DApp extends React.Component {
     this.setState({ currentBalance: response.toNumber() / 1e18 })
   }
 
+  hasMinterRole = async () => {
+    const { accounts, contract } = this.props
+    let MINTER_ROLE = await contract.MINTER_ROLE.call()
+    const response = await contract.hasRole.call( MINTER_ROLE, accounts[0] )  
+    this.setState({ minterRole: response })
+  }
+
   render () {
     // Uncomment to use web3, accounts or the contract:
     const { web3, accounts, contract } = this.props
-    const { totalSupply, currentBalance, message } = this.state
+    const { totalSupply, currentBalance, minterRole, message } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
@@ -64,8 +72,15 @@ class DApp extends React.Component {
         <div>
           <P>Address balance: {currentBalance}</P>
         </div>
-        <Button onClick={this.mintTokens}>Mint 1000 tokens to current MM account (if it has the permission)</Button>
-        
+        {this.state.minterRole && <div>
+          <Button onClick={this.mintTokens}>Mint 1000 tokens to current MM account</Button>
+        </div>}
+        {!this.state.minterRole && <div>
+          <P>You don´t have minter role!</P>
+        </div>}
+        <div>
+          <P>MINTER Role: {minterRole?'True':'False'}</P>
+        </div>
         {this.state.message!='' && <div>
           <P>Message: {message}</P>
         </div>}
