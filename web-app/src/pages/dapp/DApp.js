@@ -8,6 +8,7 @@ class DApp extends React.Component {
     totalSupply: null,
     currentBalance: null,
     minterRole: null,
+    pauserRole: null,
     transferAmount: 1000,
     transferAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
     burnAmount: 1000,
@@ -23,6 +24,7 @@ class DApp extends React.Component {
     this.getTotalSupply()
     this.getCurrentBalance()
     this.hasMinterRole()
+    this.hasPauserRole()
   }
 
   mintTokens = async () => {
@@ -67,6 +69,34 @@ class DApp extends React.Component {
     }.bind(this));
   }
 
+  pauseToken = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Pausing token')
+    contract.pause( { from: accounts[0] })
+    .then(function(result) {
+      this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
+  unpauseToken = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Pausing token')
+    contract.unpause( { from: accounts[0] })
+    .then(function(result) {
+      this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
   getTotalSupply = async () => {
     const { contract } = this.props
     const response = await contract.totalSupply.call()
@@ -84,6 +114,13 @@ class DApp extends React.Component {
     let MINTER_ROLE = await contract.MINTER_ROLE.call()
     const response = await contract.hasRole.call( MINTER_ROLE, accounts[0] )  
     this.setState({ minterRole: response })
+  }
+
+  hasPauserRole = async () => {
+    const { accounts, contract } = this.props
+    let PAUSER_ROLE = await contract.PAUSER_ROLE.call()
+    const response = await contract.hasRole.call( PAUSER_ROLE, accounts[0] )  
+    this.setState({ pauserRole: response })
   }
 
   handleAmountChange = (event) => {
@@ -114,7 +151,7 @@ class DApp extends React.Component {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
     const { accounts } = this.props
-    const { totalSupply, currentBalance, minterRole, message } = this.state
+    const { totalSupply, currentBalance, message } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
@@ -140,18 +177,26 @@ class DApp extends React.Component {
           <Button onClick={() => this.burnTokens()}>Burn</Button>
         </Wrapper>
         
-        {this.state.minterRole && <div>
+        {this.state.minterRole && <Wrapper>
           <Button onClick={this.mintTokens}>Mint 1000 tokens to current MM account</Button>
-        </div>}
-        {!this.state.minterRole && <div>
+        </Wrapper>}
+        {!this.state.minterRole && <Wrapper>
           <P>You don´t have minter role!</P>
-        </div>}
-        <div>
-          <P>MINTER Role: {minterRole?'True':'False'}</P>
-        </div>
-        {this.state.message!=='' && <div>
+        </Wrapper>}
+
+        {this.state.pauserRole && <Wrapper>
+          <Button onClick={this.pauseToken}>Pause Token</Button>
+          <Button onClick={this.unpauseToken}>Unpause Token</Button>
+        </Wrapper>}
+        {!this.state.pauserRole && <Wrapper>
+          <P>You don´t have pauser role!</P>
+        </Wrapper>}
+
+
+        {this.state.message!=='' && <Wrapper>
           <P>Message: {message}</P>
-        </div>}
+        </Wrapper>}
+
         <AppNavigation location={this.props.location} />
       </Wrapper>
     )
