@@ -8,7 +8,16 @@ class DApp extends React.Component {
     totalSupply: null,
     currentBalance: null,
     minterRole: null,
+    transferAmount: 1000,
+    transferAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
     message: ''
+  }
+
+  constructor(props) {
+    super(props);
+   
+    this.handleAddressChange = this.handleAddressChange.bind(this);
+    this.handleAmountChange = this.handleAmountChange.bind(this);
   }
 
   async componentDidMount () {
@@ -34,8 +43,20 @@ class DApp extends React.Component {
       console.log(err.message);
       this.setState({message: err.message});
     }.bind(this));
+  }
 
-    await this.getTotalSupply()
+  transferTokens = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Transferring tokens to account:', this.state.transferAmount, this.state.transferAddress)
+    contract.transfer(this.state.transferAddress, this.state.transferAmount * 1e18, { from: accounts[0] })
+    .then(function(result) {
+      this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
   }
 
   getTotalSupply = async () => {
@@ -57,9 +78,18 @@ class DApp extends React.Component {
     this.setState({ minterRole: response })
   }
 
+  handleAmountChange(event) {
+    this.setState({transferAmount: event.target.value});
+  }
+
+  handleAddressChange(event) {
+    this.setState({transferAddress: event.target.value});
+  }
+
   render () {
     // Uncomment to use web3, accounts or the contract:
-    const { web3, accounts, contract } = this.props
+    //const { web3, accounts, contract } = this.props
+    const { accounts } = this.props
     const { totalSupply, currentBalance, minterRole, message } = this.state
     return (
       <Wrapper>
@@ -72,6 +102,14 @@ class DApp extends React.Component {
         <div>
           <P>Address balance: {currentBalance}</P>
         </div>
+        <Wrapper>
+          <label>Transfer </label>
+          <input type="text" value={this.state.transferAmount} onChange={this.handleAmountChange} />
+          <label> to: </label>
+          <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
+          <Button onClick={() => this.transferTokens()}>Transfer</Button>
+        </Wrapper>
+        
         {this.state.minterRole && <div>
           <Button onClick={this.mintTokens}>Mint 1000 tokens to current MM account</Button>
         </div>}
@@ -81,7 +119,7 @@ class DApp extends React.Component {
         <div>
           <P>MINTER Role: {minterRole?'True':'False'}</P>
         </div>
-        {this.state.message!='' && <div>
+        {this.state.message!=='' && <div>
           <P>Message: {message}</P>
         </div>}
         <AppNavigation location={this.props.location} />
