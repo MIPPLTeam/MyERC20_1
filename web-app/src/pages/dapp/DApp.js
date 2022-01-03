@@ -4,6 +4,11 @@ import { AppNavigation } from 'components/navigation'
 
 // Demonstration of a basic dapp with the withWeb3 higher-order component
 class DApp extends React.Component {
+
+  ADDRESS_1 = '0xC1B3029f35FF72C767bEF4823a9D4fbCCD1e3624';
+  ADDRESS_2 = '0x459711164066EECB829E24B18b75B66586107a3E';
+  ADDRESS_3 = '0x2EC834667EC705eb0542ccE9Af5dfdbEc2e4C938';
+
   state = { 
     totalSupply: null,
     currentBalance: null,
@@ -11,11 +16,15 @@ class DApp extends React.Component {
     minterRole: null,
     pauserRole: null,
     transferAmount: 1000,
-    transferAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    transferAddress: this.ADDRESS_2,
     approveAmount: 1000,
-    approveAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    approveAddress: this.ADDRESS_2,
     currentAllowance: null,
-    roleAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    transferFromAddress: this.ADDRESS_1,
+    transferToAddress: this.ADDRESS_3,
+    transferFromAmount: 1000,
+    fromAllowance: null,
+    roleAddress: this.ADDRESS_2,
     burnAmount: 1000,
     message: ''
   }
@@ -56,6 +65,20 @@ class DApp extends React.Component {
     contract.transfer(this.state.transferAddress, this.state.transferAmount * 1e18, { from: accounts[0] })
     .then(function(result) {
       this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
+  transferFromTokens = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Transferring tokens using allowance:', this.state.transferFromAmount)
+    contract.transferFrom(this.state.transferFromAddress, this.state.transferToAddress, this.state.transferFromAmount * 1e18, { from: accounts[0] })
+    .then(function(result) {
+      this.getFromAllowance(this.state.transferFromAddress, accounts[0]);
     }.bind(this))
     .catch(function(err) {
       console.log(err.message);
@@ -134,9 +157,15 @@ class DApp extends React.Component {
   }
 
   getCurrentAllowance = async ( ownerAddress, spenderAddress ) => {
-    const { accounts, contract } = this.props
+    const { contract } = this.props
     const response = await contract.allowance.call( ownerAddress, spenderAddress )
     this.setState({ currentAllowance: response.toNumber() / 1e18 })
+  }
+
+  getFromAllowance = async ( ownerAddress, spenderAddress ) => {
+    const { contract } = this.props
+    const response = await contract.allowance.call( ownerAddress, spenderAddress )
+    this.setState({ fromAllowance: response.toNumber() / 1e18 })
   }
 
   ///////////////////////////////////
@@ -248,6 +277,20 @@ class DApp extends React.Component {
     this.setState({approveAddress: address});
   }
 
+  handleAmountFromChange = (event) => {
+    if (this.validateNumber(event)) {
+      this.setState({transferFromAmount: event.target.value});
+    }
+  }
+
+  handleAddressFromChange = (event) => {
+    this.setState({transferFromAddress: event.target.value});
+  }
+
+  handleAddressToChange = (event) => {
+    this.setState({transferToAddress: event.target.value});
+  }
+
   validateNumber = (event) => {
     if (isNaN(event.target.value)) {
       this.setState({message: 'Amount must be a number'});
@@ -275,7 +318,7 @@ class DApp extends React.Component {
           <P>Address balance: {currentBalance}</P>
         </div>
         <Wrapper>
-          <label>Transfer </label>
+          <label>Transfer amount:</label>
           <input type="text" value={this.state.transferAmount} onChange={this.handleAmountChange} />
           <label> to: </label>
           <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
@@ -293,6 +336,20 @@ class DApp extends React.Component {
         <Wrapper>
           <label>Current allowance: {this.state.currentAllowance} </label>
           <Button onClick={() => this.getCurrentAllowance( this.props.accounts[0], this.state.approveAddress)}>Refresh</Button>
+        </Wrapper>
+
+        <Wrapper>
+          <label>Transfer From:</label>
+          <input type="text" value={this.state.transferFromAddress} onChange={this.handleAddressFromChange} />
+          <label> Amount:</label>
+          <input type="text" value={this.state.transferFromAmount} onChange={this.handleAmountFromChange} />
+          <label> to: </label>
+          <input type="text" value={this.state.transferToAddress} onChange={this.handleAddressToChange} />
+          <Button onClick={() => this.transferFromTokens()}>Transfer</Button>
+        </Wrapper>
+        <Wrapper>
+          <label> Allowance from address {this.state.transferFromAddress}: {this.state.fromAllowance} </label>
+          <Button onClick={() => this.getFromAllowance( this.state.transferFromAddress, this.props.accounts[0])}>Refresh</Button>
         </Wrapper>
 
         <Wrapper>
