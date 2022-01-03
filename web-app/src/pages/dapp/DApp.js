@@ -10,14 +10,8 @@ class DApp extends React.Component {
     minterRole: null,
     transferAmount: 1000,
     transferAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    burnAmount: 1000,
     message: ''
-  }
-
-  constructor(props) {
-    super(props);
-   
-    this.handleAddressChange = this.handleAddressChange.bind(this);
-    this.handleAmountChange = this.handleAmountChange.bind(this);
   }
 
   async componentDidMount () {
@@ -59,6 +53,20 @@ class DApp extends React.Component {
     }.bind(this));
   }
 
+  burnTokens = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Burning tokens from current account:', this.state.burnAmount)
+    contract.burn( this.state.burnAmount * 1e18, { from: accounts[0] })
+    .then(function(result) {
+      this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
   getTotalSupply = async () => {
     const { contract } = this.props
     const response = await contract.totalSupply.call()
@@ -78,12 +86,28 @@ class DApp extends React.Component {
     this.setState({ minterRole: response })
   }
 
-  handleAmountChange(event) {
-    this.setState({transferAmount: event.target.value});
+  handleAmountChange = (event) => {
+    if (this.validateNumber(event)) {
+      this.setState({transferAmount: event.target.value});
+    }
   }
 
-  handleAddressChange(event) {
+  handleAddressChange = (event) => {
     this.setState({transferAddress: event.target.value});
+  }
+
+  handleAmountBurn = (event) => {
+    if (this.validateNumber(event)) {
+      this.setState({burnAmount: event.target.value});
+    }
+  }
+
+  validateNumber = (event) => {
+    if (isNaN(event.target.value)) {
+      this.setState({message: 'Amount must be a number'});
+      return false;
+    }    
+    return true;
   }
 
   render () {
@@ -108,6 +132,12 @@ class DApp extends React.Component {
           <label> to: </label>
           <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
           <Button onClick={() => this.transferTokens()}>Transfer</Button>
+        </Wrapper>
+        
+        <Wrapper>
+          <label>Burn tokens: </label>
+          <input type="text" value={this.state.burnAmount} onChange={this.handleAmountBurn} />
+          <Button onClick={() => this.burnTokens()}>Burn</Button>
         </Wrapper>
         
         {this.state.minterRole && <div>
