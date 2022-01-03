@@ -12,6 +12,9 @@ class DApp extends React.Component {
     pauserRole: null,
     transferAmount: 1000,
     transferAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    approveAmount: 1000,
+    approveAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
+    currentAllowance: null,
     roleAddress: '0x459711164066EECB829E24B18b75B66586107a3E',
     burnAmount: 1000,
     message: ''
@@ -53,6 +56,20 @@ class DApp extends React.Component {
     contract.transfer(this.state.transferAddress, this.state.transferAmount * 1e18, { from: accounts[0] })
     .then(function(result) {
       this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
+  approveAllowance = async () => {
+    const { accounts, contract } = this.props
+
+    console.log('Approving allowance of', this.state.approveAmount, this.state.approveAddress)
+    contract.approve(this.state.approveAddress, this.state.approveAmount * 1e18, { from: accounts[0] })
+    .then(function(result) {
+      this.getCurrentAllowance( accounts[0], this.state.approveAddress );
     }.bind(this))
     .catch(function(err) {
       console.log(err.message);
@@ -114,6 +131,12 @@ class DApp extends React.Component {
     const { accounts, contract } = this.props
     const response = await contract.balanceOf.call( accounts[0] )
     this.setState({ currentBalance: response.toNumber() / 1e18 })
+  }
+
+  getCurrentAllowance = async ( ownerAddress, spenderAddress ) => {
+    const { accounts, contract } = this.props
+    const response = await contract.allowance.call( ownerAddress, spenderAddress )
+    this.setState({ currentAllowance: response.toNumber() / 1e18 })
   }
 
   ///////////////////////////////////
@@ -214,6 +237,17 @@ class DApp extends React.Component {
     }
   }
 
+  handleAmountApprove = (event) => {
+    if (this.validateNumber(event)) {
+      this.setState({approveAmount: event.target.value});
+    }
+  }
+
+  handleAddressApprove = (event) => {
+    let address = event.target.value;
+    this.setState({approveAddress: address});
+  }
+
   validateNumber = (event) => {
     if (isNaN(event.target.value)) {
       this.setState({message: 'Amount must be a number'});
@@ -222,6 +256,8 @@ class DApp extends React.Component {
     return true;
   }
 
+  ////////////////////////
+  // RENDER
   render () {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
@@ -246,6 +282,19 @@ class DApp extends React.Component {
           <Button onClick={() => this.transferTokens()}>Transfer</Button>
         </Wrapper>
         
+        <Wrapper>
+          <label>Approve allowance </label>
+          <input type="text" value={this.state.approveAmount} onChange={this.handleAmountApprove} />
+          <label> to spender: </label>
+          <input type="text" value={this.state.approveAddress} onChange={this.handleAddressApprove} />
+          <Button onClick={() => this.approveAllowance()}>Approve</Button>
+        </Wrapper>
+        
+        <Wrapper>
+          <label>Current allowance: {this.state.currentAllowance} </label>
+          <Button onClick={() => this.getCurrentAllowance( this.props.accounts[0], this.state.approveAddress)}>Refresh</Button>
+        </Wrapper>
+
         <Wrapper>
           <label>Burn tokens: </label>
           <input type="text" value={this.state.burnAmount} onChange={this.handleAmountBurn} />
