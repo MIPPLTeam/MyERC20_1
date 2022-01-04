@@ -26,6 +26,10 @@ class DApp extends React.Component {
     fromAllowance: null,
     roleAddress: this.ADDRESS_2,
     burnAmount: 1000,
+    snapshotId: 1,
+    snapshotAddress: this.ADDRESS_2,
+    snapshotRole: null,
+    snapshotBalance: null,
     message: ''
   }
 
@@ -40,6 +44,7 @@ class DApp extends React.Component {
     this.hasAdminRole()
     this.hasMinterRole()
     this.hasPauserRole()
+    this.hasSnapshotRole()
   }
 
   /////////////////////
@@ -142,6 +147,21 @@ class DApp extends React.Component {
     }.bind(this));
   }
 
+  takeSnapshot = async () => {
+    const { accounts, contract } = this.props
+
+    contract.snapshot( { from: accounts[0] })
+    .then(function(result) {
+      var id = result.logs[0].args.id.toNumber();
+      console.log('Taking snapshot of current balances: ' + JSON.stringify(id))
+      this.setState({snapshotId: id});
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
   /////////////////////
   // contract readers
   getTotalSupply = async () => {
@@ -168,6 +188,12 @@ class DApp extends React.Component {
     this.setState({ fromAllowance: response.toNumber() / 1e18 })
   }
 
+  getSnapshotBalance = async ( ) => {
+    const { contract } = this.props
+    const response = await contract.balanceOfAt.call( this.state.snapshotAddress, this.state.snapshotId );
+    this.setState({ snapshotBalance: response.toNumber() / 1e18 })
+  }
+
   ///////////////////////////////////
   // contract Access Control writers
   grantMinter = async () => {
@@ -192,6 +218,18 @@ class DApp extends React.Component {
     const { contract } = this.props
     let PAUSER_ROLE = await contract.PAUSER_ROLE.call()
     await this.revokeRole( PAUSER_ROLE );  
+  }
+
+  grantSnapshot = async () => {
+    const { contract } = this.props
+    let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
+    await this.grantRole( SNAPSHOT_ROLE );  
+  }
+
+  revokeSnapshot = async () => {
+    const { contract } = this.props
+    let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
+    await this.revokeRole( SNAPSHOT_ROLE );  
   }
 
   grantRole = async (role) => {
@@ -243,6 +281,12 @@ class DApp extends React.Component {
     this.setState({ pauserRole: response })
   }
 
+  hasSnapshotRole = async () => {
+    const { accounts, contract } = this.props
+    let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
+    const response = await contract.hasRole.call( SNAPSHOT_ROLE, accounts[0] )  
+    this.setState({ snapshotRole: response })
+  }
 
   /////////////////////
   // input handlers
@@ -289,6 +333,16 @@ class DApp extends React.Component {
 
   handleAddressToChange = (event) => {
     this.setState({transferToAddress: event.target.value});
+  }
+
+  handleSnapshotAddressChange = (event) => {
+    this.setState({snapshotAddress: event.target.value});
+  }
+
+  handleSnapshotIdChange = (event) => {
+    if (this.validateNumber(event)) {
+      this.setState({snapshotId: event.target.value});
+    }
   }
 
   validateNumber = (event) => {
@@ -373,6 +427,20 @@ class DApp extends React.Component {
           <P>You don´t have pauser role!</P>
         </Wrapper>}
 
+        {this.state.snapshotRole && <Wrapper>
+          <Button onClick={this.takeSnapshot}>Take balance snapshot</Button>
+          <label>Last snapshot id: </label>
+          <input type="text" value={this.state.snapshotId} onChange={this.handleSnapshotIdChange} />
+        </Wrapper>}
+        {this.state.snapshotRole && <Wrapper>
+          <input type="text" value={this.state.snapshotAddress} onChange={this.handleSnapshotAddressChange} />
+          <Button onClick={this.getSnapshotBalance}>Recover balance snapshot</Button>
+          <label>Snapshot balance for account is: {this.state.snapshotBalance}</label>
+        </Wrapper>}
+        {!this.state.snapshotRole && <Wrapper>
+          <P>You don´t have snapshot role!</P>
+        </Wrapper>}
+
         {this.state.adminRole && <Wrapper>
           <input type="text" value={this.state.roleAddress} onChange={this.handleRoleAddressChange} />
           <P>
@@ -382,6 +450,10 @@ class DApp extends React.Component {
           <P>
             <Button onClick={this.grantPauser}>Grant pauser role</Button>
             <Button onClick={this.revokePauser}>Revoke pauser role</Button>
+          </P>
+          <P>
+            <Button onClick={this.grantSnapshot}>Grant snapshot role</Button>
+            <Button onClick={this.revokeSnapshot}>Revoke snapshot role</Button>
           </P>
         </Wrapper>}
         {!this.state.adminRole && <Wrapper>
