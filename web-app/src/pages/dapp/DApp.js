@@ -12,6 +12,8 @@ class DApp extends React.Component {
   state = { 
     totalSupply: null,
     currentBalance: null,
+    selectedContract: 0,
+    contractNames: [],
     adminRole: null,
     minterRole: null,
     pauserRole: null,
@@ -38,7 +40,7 @@ class DApp extends React.Component {
   }
 
   async refreshContractData () {
-    console.log('Refresh account data')
+    this.getContractNames()
     this.getTotalSupply()
     this.getCurrentBalance()
     this.hasAdminRole()
@@ -50,7 +52,8 @@ class DApp extends React.Component {
   /////////////////////
   // contract writers
   mintTokens = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Minting 1000 tokens to account:', accounts[0])
     contract.mint(accounts[0], 1000 * 1e18, { from: accounts[0] })
@@ -64,7 +67,8 @@ class DApp extends React.Component {
   }
 
   transferTokens = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Transferring tokens to account:', this.state.transferAmount, this.state.transferAddress)
     contract.transfer(this.state.transferAddress, this.state.transferAmount * 1e18, { from: accounts[0] })
@@ -78,7 +82,8 @@ class DApp extends React.Component {
   }
 
   transferFromTokens = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Transferring tokens using allowance:', this.state.transferFromAmount)
     contract.transferFrom(this.state.transferFromAddress, this.state.transferToAddress, this.state.transferFromAmount * 1e18, { from: accounts[0] })
@@ -92,7 +97,8 @@ class DApp extends React.Component {
   }
 
   approveAllowance = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Approving allowance of', this.state.approveAmount, this.state.approveAddress)
     contract.approve(this.state.approveAddress, this.state.approveAmount * 1e18, { from: accounts[0] })
@@ -106,7 +112,8 @@ class DApp extends React.Component {
   }
 
   burnTokens = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Burning tokens from current account:', this.state.burnAmount)
     contract.burn( this.state.burnAmount * 1e18, { from: accounts[0] })
@@ -120,7 +127,8 @@ class DApp extends React.Component {
   }
 
   pauseToken = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Pausing token')
     contract.pause( { from: accounts[0] })
@@ -134,7 +142,8 @@ class DApp extends React.Component {
   }
 
   unpauseToken = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     console.log('Pausing token')
     contract.unpause( { from: accounts[0] })
@@ -148,7 +157,8 @@ class DApp extends React.Component {
   }
 
   takeSnapshot = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
 
     contract.snapshot( { from: accounts[0] })
     .then(function(result) {
@@ -162,34 +172,52 @@ class DApp extends React.Component {
     }.bind(this));
   }
 
+  getSelectedContract = () => {
+    const { contracts } = this.props
+    return contracts[this.state.selectedContract]
+  }
+
   /////////////////////
   // contract readers
+  getContractNames = async () => {
+    const { contracts } = this.props
+    var contractNames = []
+
+    contracts.forEach(async c => {
+      const symbol = await c.symbol.call()  
+      const name = await c.name.call()    
+      contractNames.push({symbol, name})
+    }); 
+    this.setState({ contractNames })
+  }
+
   getTotalSupply = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     const response = await contract.totalSupply.call()
     this.setState({ totalSupply: response.toNumber() / 1e18 })
   }
 
   getCurrentBalance = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     const response = await contract.balanceOf.call( accounts[0] )
     this.setState({ currentBalance: response.toNumber() / 1e18 })
   }
 
   getCurrentAllowance = async ( ownerAddress, spenderAddress ) => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     const response = await contract.allowance.call( ownerAddress, spenderAddress )
     this.setState({ currentAllowance: response.toNumber() / 1e18 })
   }
 
   getFromAllowance = async ( ownerAddress, spenderAddress ) => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     const response = await contract.allowance.call( ownerAddress, spenderAddress )
     this.setState({ fromAllowance: response.toNumber() / 1e18 })
   }
 
   getSnapshotBalance = async ( ) => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     const response = await contract.balanceOfAt.call( this.state.snapshotAddress, this.state.snapshotId );
     this.setState({ snapshotBalance: response.toNumber() / 1e18 })
   }
@@ -197,43 +225,44 @@ class DApp extends React.Component {
   ///////////////////////////////////
   // contract Access Control writers
   grantMinter = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let MINTER_ROLE = await contract.MINTER_ROLE.call()
     await this.grantRole( MINTER_ROLE );  
   }
 
   revokeMinter = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let MINTER_ROLE = await contract.MINTER_ROLE.call()
     await this.revokeRole( MINTER_ROLE );  
   }
 
   grantPauser = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let PAUSER_ROLE = await contract.PAUSER_ROLE.call()
     await this.grantRole( PAUSER_ROLE );  
   }
 
   revokePauser = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let PAUSER_ROLE = await contract.PAUSER_ROLE.call()
     await this.revokeRole( PAUSER_ROLE );  
   }
 
   grantSnapshot = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
     await this.grantRole( SNAPSHOT_ROLE );  
   }
 
   revokeSnapshot = async () => {
-    const { contract } = this.props
+    const contract = this.getSelectedContract();
     let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
     await this.revokeRole( SNAPSHOT_ROLE );  
   }
 
   grantRole = async (role) => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     console.log('Grant role to ', this.state.roleAddress)
     contract.grantRole( role, this.state.roleAddress,  { from: accounts[0] })
     .then(function(result) {
@@ -246,7 +275,8 @@ class DApp extends React.Component {
   }
 
   revokeRole = async (role) => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     console.log('Revoke role to ', this.state.roleAddress)
     contract.revokeRole( role, this.state.roleAddress,  { from: accounts[0] })
     .then(function(result) {
@@ -261,28 +291,32 @@ class DApp extends React.Component {
   ///////////////////////////////////
   // contract Access Control readers
   hasAdminRole = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     let ADMIN_ROLE = await contract.DEFAULT_ADMIN_ROLE.call()
     const response = await contract.hasRole.call( ADMIN_ROLE, accounts[0] )  
     this.setState({ adminRole: response })
   }
 
   hasMinterRole = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     let MINTER_ROLE = await contract.MINTER_ROLE.call()
     const response = await contract.hasRole.call( MINTER_ROLE, accounts[0] )  
     this.setState({ minterRole: response })
   }
 
   hasPauserRole = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     let PAUSER_ROLE = await contract.PAUSER_ROLE.call()
     const response = await contract.hasRole.call( PAUSER_ROLE, accounts[0] )  
     this.setState({ pauserRole: response })
   }
 
   hasSnapshotRole = async () => {
-    const { accounts, contract } = this.props
+    const { accounts } = this.props
+    const contract = this.getSelectedContract();
     let SNAPSHOT_ROLE = await contract.SNAPSHOT_ROLE.call()
     const response = await contract.hasRole.call( SNAPSHOT_ROLE, accounts[0] )  
     this.setState({ snapshotRole: response })
@@ -345,6 +379,14 @@ class DApp extends React.Component {
     }
   }
 
+  handleContractChange = (event) => {
+    if (event.target.value!==this.state.selectedContract)  {
+      this.setState({selectedContract: event.target.value}, () => {
+        this.refreshContractData();  
+      });
+    }
+  }
+
   validateNumber = (event) => {
     if (isNaN(event.target.value)) {
       this.setState({message: 'Amount must be a number'});
@@ -359,13 +401,18 @@ class DApp extends React.Component {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
     const { accounts } = this.props
-    const { totalSupply, currentBalance, message } = this.state
+    const { totalSupply, currentBalance, message, contractNames } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
-        <P>Current MM account: {accounts[0]}</P>
+        <P>Current MM account: {accounts[0]}</P><br/>
+        <select value={this.state.selectedContract} onChange={this.handleContractChange}>
+        {contractNames.map( (item, index) => {
+            return (<option key={index} value={index}>{item.name + ' (' + item.symbol + ')'}</option>);
+        })}
+      </select>
         <div>
-          <P>Total Supply: {totalSupply}</P>
+          <P>Total Supply 1: {totalSupply}</P><br/>
           <Button leftMargin onClick={() => this.refreshContractData()}>Refresh...</Button>
         </div>
         <div>

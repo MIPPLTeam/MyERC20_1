@@ -1,5 +1,6 @@
 import initContract from 'truffle-contract'
 import contractDefinition from 'contracts/MyERC20_1.json'
+import contractDefinition2 from 'contracts/MyERC20_2.json'
 
 export const getAccounts = web3 =>
   new Promise((resolve, reject) => {
@@ -9,6 +10,14 @@ export const getAccounts = web3 =>
   })
 
 export const getContractInstance = async web3 => {
+  return getGenericContractInstance(web3, contractDefinition)
+}
+
+export const getContractInstance2 = async web3 => {
+  return getGenericContractInstance(web3, contractDefinition2)
+}
+
+const getGenericContractInstance = async (web3, contractDefinition) => {
   const contract = initContract(contractDefinition)
   contract.setProvider(web3.currentProvider)
 
