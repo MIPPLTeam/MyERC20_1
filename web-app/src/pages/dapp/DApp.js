@@ -20,7 +20,7 @@ class DApp extends React.Component {
     minterRole: null,
     pauserRole: null,
     transferAmount: 1000,
-    transferAddress: this.ADDRESS_2,
+    transferAddress: this.ADDRESS_CONTRACT2,
     transferAddressBalance: 0,
     approveAmount: 1000,
     approveAddress: this.ADDRESS_2,
@@ -203,11 +203,13 @@ class DApp extends React.Component {
 
   getCurrentBalance = async () => {
     const { accounts } = this.props    
-    this.setState({ currentBalance: this.getBalanceForAddress(accounts[0]) })
+    const response = await this.getBalanceForAddress(accounts[0]);
+    this.setState({ currentBalance: response })
   }
 
-  getTransferAddressBalance = async () => {    
-    this.setState({ transferAddressBalance: this.getBalanceForAddress( this.state.transferAddress ) })
+  getTransferAddressBalance = async () => { 
+    const response = await this.getBalanceForAddress( this.state.transferAddress )   
+    this.setState({ transferAddressBalance: response })
   }
 
   getBalanceForAddress = async (address) => {
@@ -413,7 +415,7 @@ class DApp extends React.Component {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
     const { accounts } = this.props
-    const { totalSupply, currentBalance, message, contractNames } = this.state
+    const { totalSupply, currentBalance, transferAddressBalance, message, contractNames } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
@@ -436,7 +438,7 @@ class DApp extends React.Component {
           <label> to: </label>
           <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
           <Button onClick={() => this.transferTokens()}>Transfer</Button><br></br>
-          <label>Balance of address: {this.state.transferAddressBalance}</label>
+          <label>Balance of address: {transferAddressBalance}</label>
         </Wrapper>
         
         <Wrapper>
