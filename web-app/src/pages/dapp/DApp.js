@@ -8,6 +8,8 @@ class DApp extends React.Component {
   ADDRESS_1 = '0xC1B3029f35FF72C767bEF4823a9D4fbCCD1e3624';
   ADDRESS_2 = '0x459711164066EECB829E24B18b75B66586107a3E';
   ADDRESS_3 = '0x2EC834667EC705eb0542ccE9Af5dfdbEc2e4C938';
+  ADDRESS_CONTRACT1 = '0x24fC4df5b014050E44D02e9829f1B6b8500215fa';
+  ADDRESS_CONTRACT2 = '0x7b3f44b61deBebb5d33090b9D898103B4173738A';
 
   state = { 
     totalSupply: null,
@@ -19,6 +21,7 @@ class DApp extends React.Component {
     pauserRole: null,
     transferAmount: 1000,
     transferAddress: this.ADDRESS_2,
+    transferAddressBalance: 0,
     approveAmount: 1000,
     approveAddress: this.ADDRESS_2,
     currentAllowance: null,
@@ -43,6 +46,7 @@ class DApp extends React.Component {
     this.getContractNames()
     this.getTotalSupply()
     this.getCurrentBalance()
+    this.getTransferAddressBalance()
     this.hasAdminRole()
     this.hasMinterRole()
     this.hasPauserRole()
@@ -198,10 +202,18 @@ class DApp extends React.Component {
   }
 
   getCurrentBalance = async () => {
-    const { accounts } = this.props
+    const { accounts } = this.props    
+    this.setState({ currentBalance: this.getBalanceForAddress(accounts[0]) })
+  }
+
+  getTransferAddressBalance = async () => {    
+    this.setState({ transferAddressBalance: this.getBalanceForAddress( this.state.transferAddress ) })
+  }
+
+  getBalanceForAddress = async (address) => {
     const contract = this.getSelectedContract();
-    const response = await contract.balanceOf.call( accounts[0] )
-    this.setState({ currentBalance: response.toNumber() / 1e18 })
+    const response = await contract.balanceOf.call( address )
+    return response.toNumber() / 1e18;
   }
 
   getCurrentAllowance = async ( ownerAddress, spenderAddress ) => {
@@ -423,7 +435,8 @@ class DApp extends React.Component {
           <input type="text" value={this.state.transferAmount} onChange={this.handleAmountChange} />
           <label> to: </label>
           <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
-          <Button onClick={() => this.transferTokens()}>Transfer</Button>
+          <Button onClick={() => this.transferTokens()}>Transfer</Button><br></br>
+          <label>Balance of address: {this.state.transferAddressBalance}</label>
         </Wrapper>
         
         <Wrapper>
