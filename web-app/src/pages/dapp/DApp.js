@@ -5,23 +5,26 @@ import { AppNavigation } from 'components/navigation'
 // Demonstration of a basic dapp with the withWeb3 higher-order component
 class DApp extends React.Component {
 
+  ADDRESS_0 = '0x0000000000000000000000000000000000000000'
   ADDRESS_1 = '0xC1B3029f35FF72C767bEF4823a9D4fbCCD1e3624';
   ADDRESS_2 = '0x459711164066EECB829E24B18b75B66586107a3E';
   ADDRESS_3 = '0x2EC834667EC705eb0542ccE9Af5dfdbEc2e4C938';
   ADDRESS_CONTRACT1 = '0x24fC4df5b014050E44D02e9829f1B6b8500215fa';
-  ADDRESS_CONTRACT2 = '0x7b3f44b61deBebb5d33090b9D898103B4173738A';
+  ADDRESS_CONTRACT2 = '0xaF67CfDaF753A9DDB98191d2726a88b8C80a4A44';
 
   state = { 
     totalSupply: null,
     currentBalance: null,
     selectedContract: 0,
     contractNames: [],
+    contractAddress: this.ADDRESS_CONTRACT1,
     adminRole: null,
     minterRole: null,
     pauserRole: null,
     transferAmount: 1000,
     transferAddress: this.ADDRESS_CONTRACT2,
     transferAddressBalance: 0,
+    transferAddressBalanceETH: 0,
     approveAmount: 1000,
     approveAddress: this.ADDRESS_2,
     currentAllowance: null,
@@ -51,6 +54,27 @@ class DApp extends React.Component {
     this.hasMinterRole()
     this.hasPauserRole()
     this.hasSnapshotRole()
+  }
+
+  ///////////////////////////////
+  // send ETH
+  sendETH = async ( ) => {
+    const { web3, accounts } = this.props
+
+    const params = {
+      from: accounts[0],
+      to: this.state.transferAddress,
+      value: this.state.transferAmount * 1e18
+    };
+    web3.eth.sendTransaction(params)
+    .then(function(result) {
+      console.log(JSON.stringify(result))
+      //this.refreshContractData();
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
   }
 
   /////////////////////
@@ -176,6 +200,20 @@ class DApp extends React.Component {
     }.bind(this));
   }
 
+  refundToken = async () => {
+    const { accounts, contracts } = this.props
+    const contract = contracts[1];  // only refundable contract
+
+    contract.refundToken( this.state.contractAddress, accounts[0], this.state.transferAmount * 1e18, { from: accounts[0] })
+    .then(function(result) {
+      console.log('Refunding: ' + JSON.stringify(result))
+    }.bind(this))
+    .catch(function(err) {
+      console.log(err.message);
+      this.setState({message: err.message});
+    }.bind(this));
+  }
+
   getSelectedContract = () => {
     const { contracts } = this.props
     return contracts[this.state.selectedContract]
@@ -235,6 +273,12 @@ class DApp extends React.Component {
     const response = await contract.balanceOfAt.call( this.state.snapshotAddress, this.state.snapshotId );
     this.setState({ snapshotBalance: response.toNumber() / 1e18 })
   }
+
+  getContractAddress = async ( ) => {
+    const contract = this.getSelectedContract();
+    this.setState({ contractAddress: contract.address })
+  }
+
 
   ///////////////////////////////////
   // contract Access Control writers
@@ -396,7 +440,10 @@ class DApp extends React.Component {
   handleContractChange = (event) => {
     if (event.target.value!==this.state.selectedContract)  {
       this.setState({selectedContract: event.target.value}, () => {
-        this.refreshContractData();  
+        const contract = this.getSelectedContract();
+        this.setState({ contractAddress: contract.address }, () => {
+          this.refreshContractData();  
+        })
       });
     }
   }
@@ -415,11 +462,12 @@ class DApp extends React.Component {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
     const { accounts } = this.props
-    const { totalSupply, currentBalance, transferAddressBalance, message, contractNames } = this.state
+    const { totalSupply, currentBalance, transferAddressBalance, message, contractAddress, contractNames } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
         <P>Current MM account: {accounts[0]}</P><br/>
+        <P>Current contract address: {contractAddress}</P><br/>
         <select value={this.state.selectedContract} onChange={this.handleContractChange}>
         {contractNames.map( (item, index) => {
             return (<option key={index} value={index}>{item.name + ' (' + item.symbol + ')'}</option>);
@@ -437,8 +485,10 @@ class DApp extends React.Component {
           <input type="text" value={this.state.transferAmount} onChange={this.handleAmountChange} />
           <label> to: </label>
           <input type="text" value={this.state.transferAddress} onChange={this.handleAddressChange} />
-          <Button onClick={() => this.transferTokens()}>Transfer</Button><br></br>
-          <label>Balance of address: {transferAddressBalance}</label>
+          <Button onClick={() => this.transferTokens()}>Transfer Token</Button><br></br>
+          <Button onClick={() => this.sendETH()}>Transfer ETH</Button><br></br>
+          <label>Token balance of address: {transferAddressBalance}</label><br></br>
+          <Button onClick={() => this.refundToken()}>Refund token trapped in Contract ME2</Button><br></br>
         </Wrapper>
         
         <Wrapper>

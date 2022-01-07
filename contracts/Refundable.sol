@@ -21,7 +21,7 @@ contract Refundable is Context{
         returns (bool success)
     {
         require(address(this).balance != 0, "refundETH: No trapped ETH");
-        require(address(this).balance > amount, "refundETH: Not enough ETH to transfer");
+        require(address(this).balance >= amount, "refundETH: Not enough ETH to transfer");
         recipient.transfer(amount);
         emit RefundedETH(_msgSender());
         return true;
@@ -33,7 +33,7 @@ contract Refundable is Context{
     {
         ERC20 token = ERC20(tokenAddress);
         require(token.balanceOf(address(this)) != 0, "refundToken: No trapped tokens");
-        require(token.balanceOf(address(this)) > 0, "refundToken: Not enouth tokens to transfer");
+        require(token.balanceOf(address(this)) >= amount, "refundToken: Not enouth tokens to transfer");
         token.transfer(recipient, amount);
         emit RefundedToken(_msgSender());
         return true;
