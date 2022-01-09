@@ -1,6 +1,7 @@
 import initContract from 'truffle-contract'
 import contractDefinition from 'contracts/MyERC20_1.json'
 import contractDefinition2 from 'contracts/MyERC20_2.json'
+import contractDefinitionHEX from 'contracts/HEX/HEX.json'
 
 export const getAccounts = web3 =>
   new Promise((resolve, reject) => {
@@ -15,6 +16,11 @@ export const getContractInstance = async web3 => {
 
 export const getContractInstance2 = async web3 => {
   return getGenericContractInstance(web3, contractDefinition2)
+}
+
+export const getContractInstanceHEX = async web3 => {
+  //console.log('getContractInstanceHEX: ' + JSON.stringify(contractDefinitionHEX))
+  return getGenericContractInstance(web3, contractDefinitionHEX)
 }
 
 const getGenericContractInstance = async (web3, contractDefinition) => {

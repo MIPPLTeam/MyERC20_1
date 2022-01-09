@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom'
 import { Home } from 'pages/home'
 import { Accounts } from 'pages/accounts'
 import { DApp } from 'pages/dapp'
+import { DAppHEX } from 'pages/dappHEX'
 import { Web3Loader } from 'components/web3'
 
 const renderComponent = (Component, routeProps, web3Props) => (
@@ -22,6 +23,7 @@ export default () =>
           <div>
             <Route exact path='/' component={Home} />
             <Route path='/dapp' render={routeProps => renderComponent(DApp, routeProps, web3Props)} />
+            <Route path='/dappHEX' render={routeProps => renderComponent(DAppHEX, routeProps, web3Props)} />
             <Route path='/accounts' render={routeProps => renderComponent(Accounts, routeProps, web3Props)} />
           </div>
         )
