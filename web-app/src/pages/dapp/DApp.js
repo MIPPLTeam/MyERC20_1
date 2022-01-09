@@ -17,6 +17,7 @@ class DApp extends React.Component {
     currentBalance: null,
     selectedContract: 0,
     contractNames: [],
+    contractDecimals: 1e18,
     contractAddress: this.ADDRESS_CONTRACT1,
     adminRole: null,
     minterRole: null,
@@ -47,6 +48,7 @@ class DApp extends React.Component {
 
   async refreshContractData () {
     this.getContractNames()
+    this.getContractDecimals()
     this.getTotalSupply()
     this.getCurrentBalance()
     this.getTransferAddressBalance()
@@ -64,7 +66,7 @@ class DApp extends React.Component {
     const params = {
       from: accounts[0],
       to: this.state.transferAddress,
-      value: this.state.transferAmount * 1e18
+      value: this.state.transferAmount * 10 ** this.state.contractDecimals
     };
     web3.eth.sendTransaction(params)
     .then(function(result) {
@@ -84,7 +86,7 @@ class DApp extends React.Component {
     const contract = this.getSelectedContract();
 
     console.log('Minting 1000 tokens to account:', accounts[0])
-    contract.mint(accounts[0], 1000 * 1e18, { from: accounts[0] })
+    contract.mint(accounts[0], 1000 * 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       this.refreshContractData();
     }.bind(this))
@@ -99,7 +101,7 @@ class DApp extends React.Component {
     const contract = this.getSelectedContract();
 
     console.log('Transferring tokens to account:', this.state.transferAmount, this.state.transferAddress)
-    contract.transfer(this.state.transferAddress, this.state.transferAmount * 1e18, { from: accounts[0] })
+    contract.transfer(this.state.transferAddress, this.state.transferAmount * 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       this.refreshContractData();
     }.bind(this))
@@ -114,7 +116,7 @@ class DApp extends React.Component {
     const contract = this.getSelectedContract();
 
     console.log('Transferring tokens using allowance:', this.state.transferFromAmount)
-    contract.transferFrom(this.state.transferFromAddress, this.state.transferToAddress, this.state.transferFromAmount * 1e18, { from: accounts[0] })
+    contract.transferFrom(this.state.transferFromAddress, this.state.transferToAddress, this.state.transferFromAmount * 10 ** 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       this.getFromAllowance(this.state.transferFromAddress, accounts[0]);
     }.bind(this))
@@ -129,7 +131,7 @@ class DApp extends React.Component {
     const contract = this.getSelectedContract();
 
     console.log('Approving allowance of', this.state.approveAmount, this.state.approveAddress)
-    contract.approve(this.state.approveAddress, this.state.approveAmount * 1e18, { from: accounts[0] })
+    contract.approve(this.state.approveAddress, this.state.approveAmount * 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       this.getCurrentAllowance( accounts[0], this.state.approveAddress );
     }.bind(this))
@@ -144,7 +146,7 @@ class DApp extends React.Component {
     const contract = this.getSelectedContract();
 
     console.log('Burning tokens from current account:', this.state.burnAmount)
-    contract.burn( this.state.burnAmount * 1e18, { from: accounts[0] })
+    contract.burn( this.state.burnAmount * 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       this.refreshContractData();
     }.bind(this))
@@ -204,7 +206,7 @@ class DApp extends React.Component {
     const { accounts, contracts } = this.props
     const contract = contracts[1];  // only refundable contract
 
-    contract.refundToken( this.state.contractAddress, accounts[0], this.state.transferAmount * 1e18, { from: accounts[0] })
+    contract.refundToken( this.state.contractAddress, accounts[0], this.state.transferAmount * 10 ** this.state.contractDecimals, { from: accounts[0] })
     .then(function(result) {
       console.log('Refunding: ' + JSON.stringify(result))
     }.bind(this))
@@ -236,7 +238,13 @@ class DApp extends React.Component {
   getTotalSupply = async () => {
     const contract = this.getSelectedContract();
     const response = await contract.totalSupply.call()
-    this.setState({ totalSupply: response.toNumber() / 1e18 })
+    this.setState({ totalSupply: response.toNumber() / 10 ** this.state.contractDecimals })
+  }
+
+  getContractDecimals = async () => {
+    const contract = this.getSelectedContract();
+    const response = await contract.decimals.call()
+    this.setState({ contractDecimals: response.toNumber() })
   }
 
   getCurrentBalance = async () => {
@@ -253,25 +261,25 @@ class DApp extends React.Component {
   getBalanceForAddress = async (address) => {
     const contract = this.getSelectedContract();
     const response = await contract.balanceOf.call( address )
-    return response.toNumber() / 1e18;
+    return response.toNumber() / 10 ** this.state.contractDecimals;
   }
 
   getCurrentAllowance = async ( ownerAddress, spenderAddress ) => {
     const contract = this.getSelectedContract();
     const response = await contract.allowance.call( ownerAddress, spenderAddress )
-    this.setState({ currentAllowance: response.toNumber() / 1e18 })
+    this.setState({ currentAllowance: response.toNumber() / 10 ** this.state.contractDecimals })
   }
 
   getFromAllowance = async ( ownerAddress, spenderAddress ) => {
     const contract = this.getSelectedContract();
     const response = await contract.allowance.call( ownerAddress, spenderAddress )
-    this.setState({ fromAllowance: response.toNumber() / 1e18 })
+    this.setState({ fromAllowance: response.toNumber() / 10 ** this.state.contractDecimals })
   }
 
   getSnapshotBalance = async ( ) => {
     const contract = this.getSelectedContract();
     const response = await contract.balanceOfAt.call( this.state.snapshotAddress, this.state.snapshotId );
-    this.setState({ snapshotBalance: response.toNumber() / 1e18 })
+    this.setState({ snapshotBalance: response.toNumber() / 10 ** this.state.contractDecimals })
   }
 
   getContractAddress = async ( ) => {
@@ -462,12 +470,13 @@ class DApp extends React.Component {
     // Uncomment to use web3, accounts or the contract:
     //const { web3, accounts, contract } = this.props
     const { accounts } = this.props
-    const { totalSupply, currentBalance, transferAddressBalance, message, contractAddress, contractNames } = this.state
+    const { totalSupply, currentBalance, transferAddressBalance, message, contractAddress, contractNames, contractDecimals } = this.state
     return (
       <Wrapper>
         <h1>My ERC20 contract</h1>
         <P>Current MM account: {accounts[0]}</P><br/>
         <P>Current contract address: {contractAddress}</P><br/>
+        <P>Current contract decimals: {contractDecimals}</P><br/>
         <select value={this.state.selectedContract} onChange={this.handleContractChange}>
         {contractNames.map( (item, index) => {
             return (<option key={index} value={index}>{item.name + ' (' + item.symbol + ')'}</option>);
